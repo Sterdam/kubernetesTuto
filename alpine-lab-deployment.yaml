@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stress-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpine-lab
+  namespace: stress-test
+  labels:
+    app: alpine-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpine-lab
+  template:
+    metadata:
+      labels:
+        app: alpine-lab
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: alpine-lab
+        image: localhost:32000/alpine-lab:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+        volumeMounts:
+        - name: stress-scripts-volume
+          mountPath: /stress-scripts
+      volumes:
+      - name: stress-scripts-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alpine-lab
+  namespace: stress-test
+spec:
+  selector:
+    app: alpine-lab
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
